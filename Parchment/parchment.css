@@ -7,6 +7,14 @@ Foreground and background styles for each of the standard z-machine colors and s
 */
 
 
+#gameport
+{
+	line-height: 1.4;
+	margin: 0 auto;
+	text-align: left;
+	width: 80%;
+}
+
 .fg-default {
     color: black;
 }

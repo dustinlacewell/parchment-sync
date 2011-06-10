@@ -1,5 +1,30 @@
 Change log started August 2009.
 
+May 2011
+================================================================================
+Added parchment.options.width to specify the width in characters.
+Allow options to be overriden with query string ?options=
+Rewrote the scroll-to-top-of-response code to work in iframes.
+
+April 2011
+================================================================================
+Smallish changes to the text input class.
+Support responseBody in IE.
+
+March 2011
+================================================================================
+Added Quixe! :D
+Minor changes to allow the Quixe files to be loaded in any order.
+
+February 2011
+================================================================================
+Fixed issue 155: insert extra spans so that input works even if no prompt printed.
+Upgraded to jQuery 1.5. The git version was needed as they broke file:. Gah.
+Used the awesome new 1.5 features to add a custom binary dataType.
+Used jQuery.when() to rewrite the launcher, which is now extensible.
+Get stuff ready for iplayif.com... scrap querystring.js.
+Added a very basic search page.
+
 October 2010
 ================================================================================
 Set more header variables.

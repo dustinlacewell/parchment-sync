@@ -1,14 +1,41 @@
 /*
- * The Parchment Library
- *
- * Copyright (c) 2003-2010 The Parchment Contributors
- * Licenced under the GPL v2
- * http://code.google.com/p/parchment
- */
+
+The Parchment Library
+=====================
+
+Copyright (c) 2008-2011 The Parchment Contributors
+BSD licenced
+http://code.google.com/p/parchment
+
+*/
+
+/*
+
+TODO:
+	Display a more specific error if one was given by the proxy
+
+*/
+
 (function(window, $){
 
+var rqueryurl = /story=([^;&]+)/,
+rqueryvm = /vm=(\w+)/,
+rtitle = /([-\w\s_]+)(\.[\w]+(\.js)?)?$/,
+rjs = /\.js$/,
+
+// Callback to show an error if a VM's dependant scripts could be successfully loaded
+story_get_fail = function(){
+	throw new FatalError( 'Parchment could not load load the story. Check your connection, and that the URL is correct.' );
+};
+
+// Callback to show an error if a VM's dependant scripts could be successfully loaded
+// Currently not usable as errors are not detected :(
+/*scripts_fail = function(){
+	throw new FatalError( 'Parchment could not load everything it needed to run this story. Check your connection and try refreshing the page.' );
+};*/
+
 // A story file
-var Story = IFF.subClass({
+parchment.lib.Story = IFF.subClass({
 	// Parse a zblorb or naked zcode story file
 	init: function parse_zblorb(data, story_name)
 	{
@@ -19,7 +46,7 @@ var Story = IFF.subClass({
 		// some of the other fields as well for sanity-checking.
 		if (data[0] < 9)
 		{
-			this.filetype = 'ok story naked zcode';
+			//this.filetype = 'zcode';
 			this._super();
 			this.chunks.push({
 				type: 'ZCOD',
@@ -27,6 +54,19 @@ var Story = IFF.subClass({
 			});
 			this.zcode = data;
 		}
+		
+		// Check for naked glulx
+		else if (IFF.text_from(data, 0) == 'Glul')
+		{
+			//this.filetype = 'glulx';
+			this._super();
+			this.chunks.push({
+				type: 'GLUL',
+				data: data
+			});
+			this.glulx = data;
+		}
+		
 		// Check for potential zblorb
 		else if (IFF.text_from(data, 0) == 'FORM')
 		{
@@ -51,10 +91,16 @@ var Story = IFF.subClass({
 								start: IFF.num_from(this.chunks[i].data, 12 + j * 12)
 							});
 */
-					if (type == 'ZCOD' && !this.zcode)
-						// Parchment uses the first ZCOD chunk it finds, but the Blorb spec says the RIdx chunk should be used
+					// Parchment uses the first ZCOD/GLUL chunk it finds, but the Blorb spec says the RIdx chunk should be used
+					if ( type == 'ZCOD' && !this.zcode )
+					{
 						this.zcode = this.chunks[i].data;
-
+					}
+					else if ( type == 'GLUL' && !this.glulx )
+					{
+						this.glulx = this.chunks[i].data;
+					}
+						
 					else if (type == 'IFmd')
 					{
 						// Treaty of Babel metadata
@@ -88,33 +134,32 @@ var Story = IFF.subClass({
 */
 				}
 
-				if (this.zcode)
+/*				if (this.zcode)
 					this.filetype = 'ok story blorbed zcode';
 				else
 					this.filetype = 'error: no zcode in blorb';
-			}
-			// Not a blorb
+*/			}
+/*			// Not a blorb
 			else if (this.type == 'IFZS')
 				this.filetype = 'error: trying to load a Quetzal savefile';
 			else
 				this.filetype = 'error unknown iff';
-		}
-		else
+*/		}
+/*		else
 			// Not a story file
 			this.filetype = 'error unknown general';
-	},
+*/	},
 
 	// Load zcode into engine
 	load: function loadIntoEngine(engine)
 	{
 		if (this.zcode)
 			engine.loadStory(this.zcode);
-		//window.document.title = this.title + ' - Parchment';
 	}
-}),
+});
 
 // Story file cache
-StoryCache = Object.subClass({
+var StoryCache = Object.subClass({
 	// Add a story to the cache
 	add: function(story)
 	{
@@ -125,128 +170,68 @@ StoryCache = Object.subClass({
 	url: {}
 }),
 
-// Z-Machine launcher
-launch_zmachine = function( url, library )
-{
-	// Store the story in this closure so we can still launch when things load out of order
-	var story,
-	
-	files = 1, timer, lib_path = parchment.options.lib_path,
-
-	// Callback to check if everything has loaded, and to launch the Z-Machine if so
-	callback = function( data )
-	{
-		// Are we being called with a byte array story?
-		if ( $.isArray(data) )
-			story = data;
-		
-		if ( --files == 0 )
-		{
-			// Theoretically everything has been loaded now... though that may not be the case in reality
-			// Call stage2() with a timer in case we have to wait a little longer.
-			timer = setInterval( stage2, 1 );
-		}
-	},
-	
-	// Truly launch it now
-	stage2 = function()
-	{
-		// Check that everything has loaded
-		if ( library.loaded_zmachine || 
-		     window.GnustoEngine && window.Quetzal && window.EngineRunner && window.Console && parchment.lib.ZUI && story )
-		{
-			// Everything is here, finally
-			library.loaded_zmachine = true;
-			clearInterval( timer );
-			
-			// Start the VM
-			$('#progress-text').html('Starting interpreter...');
-			
-			var logfunc = typeof console !== undefined ?
-				function() {} :
-				function(msg) { window.console.log(msg); },
-
-			engine = new GnustoEngine( logfunc ),
-			zui = new parchment.lib.ZUI( library, engine, logfunc ),
-			runner = new EngineRunner( engine, zui, logfunc ),
-
-			mystory = new Story( story, storyName ),
-			savefile = location.hash;
-			
-			logfunc( "Story type: " + mystory.filetype )
-			mystory.load( engine );
-
-			if ( savefile && savefile != '#' ) // IE will set location.hash for an empty fragment, FF won't
-			{
-				engine.loadSavedGame( file.base64_decode( savefile.slice(1)));
-				logfunc( 'Loading savefile' );
-			}
-
-			runner.run();
-		}
-	};
-
-	// Download the Z-Machine libs now so they can be parallelised
-	if ( !library.loaded_zmachine )
-	{
-		// Get the correct files for parchment.full.html/parchment.html
-		;;; files = 6;
-		;;; ;;; var libs = ['src/gnusto/gnusto-engine.js', 'src/plugins/quetzal.js', 'src/zmachine/runner.js', 'src/zmachine/console.js', 'src/zmachine/zui.js'], i = 0, l = 5;
-		;;; while ( i < l ) {
-		;;; 	$.getScript( libs[i], callback );
-		;;; 	i++;
-		;;; }
-		;;; /*
-		files = 3;
-		$.getScript( lib_path + 'gnusto.min.js', callback );
-		$.getScript( lib_path + 'zmachine.min.js', callback );
-		;;; */
-	}
-		
-	// Download the story
-	file.download_to_array( url, callback );
-},
-
 // The Parchment Library class
 Library = Object.subClass({
 	// Set up the library
 	init: function()
 	{
-		var self = this;
-		
 		// Keep a reference to our container
-		self.container = $( parchment.options.container );
+		this.container = $( parchment.options.container );
 		
-		// Load indicator
-		self.load_indicator = $( '<div class="dialog load"><p>Parchment is loading.<p>&gt; <blink>_</blink></div>' );
+		this.ui = new parchment.lib.UI( this );
 	},
 	
 	// Load a story or savefile
-	load: function(id)
+	load: function( id )
 	{
 		var self = this,
 		
-		options = parchment.options;
+		options = parchment.options,
 		
-		// Show the load indicator
-		$( 'body' ).append( self.load_indicator );
+		storyfile = rqueryurl.exec( location.search ),
+		url,
+		vm = rqueryvm.exec( location.search ),
+		i = 0;
 		
+		// Run the default story only
 		if ( options.lock_story )
 		{
 			// Locked to the default story
-			var storyfile = options.default_story;
+			storyfile = options.default_story;
+
+			if ( !storyfile )
+			{
+				throw new FatalError( 'Story file not specified' );
+			}
 		}
-		else
+		// Load the requested story or the default story
+		else if ( options.default_story || storyfile )
 		{
 			// Load from URL, or the default story
-			var querystring = new Querystring(),
-			storyfile = querystring.get('story', options.default_story);
+			storyfile = storyfile && unescape( storyfile[1] ) || options.default_story;
 		}
-		var url = $.isArray( storyfile ) ? storyfile[0] : storyfile;
+		// Show the library
+		else
+		{
+			return this.ui.load_panels();
+		}
+		
+		// Hide the #about, until we can do something more smart with it
+		$('#about').remove();
+		
+		// Show the load indicator
+		$( 'body' ).append( self.ui.load_indicator );
+		
+		// Normalise the storyfile array
+		if ( !$.isArray( storyfile ) )
+		{
+			storyfile = [ storyfile, 0 ];
+		}
+		url = storyfile[0];
 		self.url = url;
 
-		storyName = url.slice( url.lastIndexOf("/") + 1 );
-		storyName = storyName ? storyName + " - Parchment" : "Parchment";
+		storyName = rtitle.exec( url );
+		storyName = storyName ? storyName[1] + " - Parchment" : "Parchment";
 		
 		// Change the page title
 		if ( options.page_title )
@@ -255,23 +240,98 @@ Library = Object.subClass({
 		}
 		
 		// Check the story cache first
-		if ( self.stories.url[url] )
-			var story = self.stories.url[url];
+		//if ( self.stories.url[url] )
+		//	var story = self.stories.url[url];
 
 		// We will have to download it
-		else
-		{
-			$('#progress-text').html('Retrieving story file...');
-			// When Glulx support is added we will need to sniff the filename to decide which to launch
+		//else
+		//{
+			// If a VM was explicitly specified, use it
+			if ( vm )
+			{
+				vm = parchment.vms[ vm[1] ];
+			}
+			// Otherwise test each in turn
+			else
+			{
+				for ( ; i < parchment.vms.length; i++ )
+				{
+					if ( parchment.vms[i].match.test( url ) )
+					{
+						vm = parchment.vms[i];
+						break;
+					}
+				}
+			}
+			// Raise an error if we have no VM
+			if ( !vm )
+			{
+				throw new FatalError( 'File type is not supported!' );
+			}
+			
+			// Launch the story with the VM
 			try
 			{
-				launch_zmachine( storyfile, self );
+				this.launch( vm, storyfile );
 			}
 			catch (e)
 			{
 				throw new FatalError( e );
 			}
+		//}
+	},
+	
+	// Get all the required files and launch the VM
+	launch: function( vm, storyfile )
+	{
+		var self = this,
+		
+		// Load the story file
+		actions = [
+			
+			$.ajax( storyfile[0], { dataType: 'binary', legacy: storyfile[1] } )
+				// Attach the library for the launcher to use (yay for chaining)
+				.done( function( data, textStatus, jqXHR )
+				{
+					jqXHR.library = self;
+				})
+				// Some error in downloading
+				.fail( story_get_fail )
+			
+		],
+		
+		// Get the scripts if they haven't been loaded already
+		scripts = [],
+		i = 0,
+		dependency;
+		
+		if ( !vm.loaded )
+		{
+			vm.loaded = 1;
+			
+			while ( i < vm.files.length )
+			{
+				dependency = parchment.options.lib_path + vm.files[i++];
+				// JS
+				if ( rjs.test( dependency ) )
+				{
+					scripts.push( $.getScript( dependency ) );
+				}
+				// CSS
+				else
+				{
+					this.ui.stylesheet_add( vm.id, dependency );
+				}
+			}
+			
+			// Use jQuery.when() to get a promise for all of the scripts
+			actions[1] = $.when.apply( 1, scripts );
+				//.fail( scripts_fail );
 		}
+		
+		// Add the launcher callback
+		$.when.apply( 1, actions )
+			.done( vm.launcher );
 	},
 
 	// Loaded stories and savefiles
@@ -280,5 +340,8 @@ Library = Object.subClass({
 });
 
 parchment.lib.Library = Library;
+
+// VM definitions
+parchment.vms = [];
 
 })(window, jQuery);

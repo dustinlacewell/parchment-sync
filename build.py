@@ -2,8 +2,8 @@
 
 # Parchment build script
 #
-# Copyright (c) 2008-2010 The Parchment Contributors
-# Licenced under the GPL v2
+# Copyright (c) 2008-2011 The Parchment Contributors
+# BSD licenced
 # http://code.google.com/p/parchment
 
 # Lists of files to combine together
@@ -12,25 +12,34 @@ includes = (
 		'src/parchment/intro.js',
 		'src/lib/class.js',
 		'src/lib/iff.js',
-		'src/plugins/querystring.js',
 		'src/plugins/remedial.js',
 		'src/parchment/error-handling.js',
 		'src/parchment/file.js',
 		'src/parchment/ui.js',
 		'src/parchment/library.js',
+		'src/parchment/gnusto.js',
 		'src/parchment/outro.js',
 	)),
 	('.build/zmachine.js', (
-		'src/zmachine/zui.js',
+		'src/gnusto/runner/zui.js',
 		'src/plugins/quetzal.js',
-		'src/zmachine/runner.js',
-		'src/zmachine/console.js',
+		'src/gnusto/runner/runner.js',
+		'src/gnusto/runner/console.js',
+	)),
+	('.build/quixe.js', (
+		'src/quixe/quixe/quixe.js',
+		'src/quixe/quixe/gi_dispa.js',
+	)),
+	('.build/glkote.js', (
+		'src/quixe/glkote/glkote.js',
+		'src/quixe/glkote/dialog.js',
+		'src/quixe/glkote/glkapi.js',
 	)),
 )
 
 # List of files to compress (with debug code removed)
 compress = (
-	('src/gnusto/gnusto-engine.js', 'Parchment/gnusto.min.js'),
+	('src/gnusto/engine/gnusto-engine.js', 'Parchment/gnusto.min.js'),
 	('.build/parchment.js', 'Parchment/parchment.min.js'),
 	('.build/zmachine.js', 'Parchment/zmachine.min.js'),
 )
@@ -43,7 +52,7 @@ import re
 today = str(datetime.date.today())
 
 # regex for debug lines, and manifest date replacement
-debug = re.compile(';;;.+$', re.M)
+debug = re.compile('(;;;.+$)|(/\* DEBUG \*/[\s\S]+?(/\* ELSEDEBUG|/\* ENDDEBUG \*/))', re.M)
 manifest = re.compile('\[INTERPRETERVERSION\].+?\[\]?', re.S)
 
 # Create .build directory if needed

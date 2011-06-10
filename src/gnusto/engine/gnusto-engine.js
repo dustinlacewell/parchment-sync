@@ -112,6 +112,21 @@ var CHILD_REC = 2;
 
 var CALLED_FROM_INTERRUPT = 0;
 
+// Not everywhere has "window" defined
+if ( !window )
+{
+	this.window = {};
+}
+
+// Temporary variables used in JITspace; they need to be
+// defined for QML, though browser JS would allow them to be
+// properties of the global object.
+var dummy;
+var t;
+var t2;
+
+var PARCHMENT_SECURITY_OVERRIDE = window.PARCHMENT_SECURITY_OVERRIDE;
+
 // Placeholder when decoding arguments for opcodes to indicate that
 // an argument needs to be popped from the stack.
 //var ARG_STACK_POP = "SP";
@@ -1140,6 +1155,11 @@ function handleZ_gestalt( engine, a )
     return engine._storer('gestalt(' + a[0] + ', ' + ( a.length < 2 ? 0 : a[1] ) + ')' );
 }
 
+function handleZ_parchment( engine, a )
+{
+	return engine._storer('op_parchment(' + a[0] + ', ' + ( a.length < 2 ? 0 : a[1] ) + ')' ); 
+}
+
 ////////////////////////////////////////////////////////////////
 //
 // |handlers|
@@ -1284,7 +1304,8 @@ var handlers_v578 = {
     //1026: print_form (V6 opcode)
     //1027: make_menu (V6 opcode)
     //1028: picture_table (V6 opcode)
-    1030: handleZ_gestalt
+    1030: handleZ_gestalt,
+    1031: handleZ_parchment
 };
 
 // Differences between each version and v5.
@@ -2063,8 +2084,53 @@ GnustoEngine.prototype = {
 		// 1: Standard Revision
 		if ( id == 1 )
 			return 0x0102;
-		else
-			return 0;
+		
+		// 0x20: @parchment
+		if ( id == 0x20 )
+		{
+			if (
+				arg == 0 ||
+				
+				// 1: Raw eval()
+				arg == 1 && PARCHMENT_SECURITY_OVERRIDE
+			)
+				return 1;
+		}
+		
+		return 0;
+	},
+	
+	// @parchment
+	op_parchment: function( id, arg )
+	{
+		var self = this;
+		
+		// 1: raw eval()
+		if ( id == 1 && PARCHMENT_SECURITY_OVERRIDE )
+		{
+			// Enable raw eval() mode
+			if ( arg == 1 )
+			{
+				self.op_parchment_data.saved_buffer = self.m_console_buffer;
+				self.m_console_buffer = '';
+				self.op_parchment_data.raw_eval = 1;
+			}
+			
+			// Return to normal mode, evaluating the buffer
+			else
+			{
+				if ( self.op_parchment_data.raw_eval )
+				{
+					eval( self.m_console_buffer );
+					self.m_console_buffer = self.op_parchment_data.saved_buffer;
+				}
+				self.op_parchment_data.raw_eval = 0;
+			}
+			
+			return 1;
+		}
+		
+		return 0;
 	},
 
   ////////////////////////////////////////////////////////////////
@@ -2281,9 +2347,11 @@ GnustoEngine.prototype = {
 		this.m_memory[1] |= 0x1D; // announce support for styled text and color
 		this.m_memory[0x26] = 1; // font width/height (dep. version) in 'units'
 		this.m_memory[0x27] = 1; // font width/height (dep. version) in 'units'
+		
 		// Z Machine Spec version
+		// For now only set 1.2 if PARCHMENT_SECURITY_OVERRIDE is set
 		this.m_memory[0x32] = 1;
-		this.m_memory[0x33] = 0;
+		this.m_memory[0x33] = PARCHMENT_SECURITY_OVERRIDE ? 2 : 0;
   },
 
 // Inlined some of these functions...
@@ -2402,7 +2470,7 @@ GnustoEngine.prototype = {
 	_compile: function ge_compile() {
 
 			this.m_compilation_running = 1;
-			var code = '', starting_pc = this.m_pc, varcode;
+			var code = '', starting_pc = this.m_pc, varcode, funcname;
 
       // Counter for naming any temporary variables that we create.
 //      var temp_var_counter = 0;
@@ -2412,11 +2480,11 @@ GnustoEngine.prototype = {
 					// List of arguments to the opcode.
 					var args = [];
 
-					this_instr_pc = this.m_pc;
-					if (this.m_value_asserts) {
-						if (this_instr_pc == null || this_instr_pc < 0 || this_instr_pc >= this.m_original_memory.length)
-							gnusto_error(206, this_instr_pc);
-					}
+					/* DEBUG */
+					var this_instr_pc = this.m_pc;
+					if ( this_instr_pc == null || this_instr_pc < 0 || this_instr_pc >= this.m_original_memory.length )
+						gnusto_error(206, this_instr_pc);
+					/* ENDDEBUG */
 
 					// Add the touch (see bug 4687). This lets us track progress simply.
 //				touch() has a huge overhead and without tracing there's no need for it. Whether this replacement is even useful is a good question...
@@ -2560,9 +2628,14 @@ GnustoEngine.prototype = {
 		// Don't push() and pop(), just set variables directly
 		code = code.replace(/m_gamestack\.push\(([^;]+)\);var tmp_(\d+) = m_gamestack\.pop\(\);/, 'var tmp_$2 = $1;');
 
-		// Name the function after the starting position, to make life
-		// easier for Venkman.
-		return 'function JIT_' + starting_pc.toString(16) + '_' + starting_pc + '(){' + code + '}';
+		// Name the function after the starting position, to make life easier for debuggers
+		funcname = 'function JIT_' + starting_pc.toString(16) + '_' + starting_pc;
+		
+		// If we have function names append them
+		;;; var find_func_name = function(pc) { while ( !vm_functions[pc] && pc > 0 ) { pc--; } return vm_functions[pc]; };
+		;;; funcname = funcname + ( window.vm_functions ? '_' + find_func_name(starting_pc) : '' );
+		
+		return funcname + '(){' + code + '}';
 	},
 
 	_param_count: function ge_param_count() {
@@ -2645,9 +2718,15 @@ GnustoEngine.prototype = {
 
 			var result;
 
-			if (zscii_code==13 || zscii_code==10) {
-					result = 10;
-			} else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0) {
+			if ( zscii_code == 0 )
+			{
+				return '';
+			}
+			else if ( zscii_code == 10 || zscii_code == 13 )
+			{
+				return '\n';
+			}
+			else if ((zscii_code>=32 && zscii_code<=126) || zscii_code==0) {
 					result = zscii_code;
 			} else if (zscii_code>=155 && zscii_code<=251) {
 					// Extra characters.
@@ -2702,6 +2781,10 @@ GnustoEngine.prototype = {
 			}
 		}
 		
+		// Return linefeeds correctly
+		if ( ascii_code == 10 || ascii_code == 13 )
+			return 13;
+
 		// Standard ASCII characters, except for the arrow keys, plus NULL
 		if ( ( ascii_code > 31 && ascii_code < 127 ) || ascii_code == 0 )
 		{
@@ -3493,7 +3576,7 @@ GnustoEngine.prototype = {
 			}
 
 			while (candidate) {
-					next_along = this._get_sibling(candidate);
+					var next_along = this._get_sibling(candidate);
 					if (next_along==object) {
 							return candidate; // Yay! Got it!
 					}
@@ -4039,7 +4122,7 @@ GnustoEngine.prototype = {
 
 					var bits = this.m_memory[0x11] & 0x03;
 					var changed = bits != this.m_printing_header_bits;
-					effect_parameters = this.m_printing_header_bits;
+					//var effect_parameters = this.m_printing_header_bits;
 					this.m_printing_header_bits = bits;
 
 					// OK, so should we bail?
@@ -4068,10 +4151,21 @@ GnustoEngine.prototype = {
 
 	////////////////////////////////////////////////////////////////
 
-	consoleText: function ge_console_text() {
-			var temp = this.m_console_buffer.replace('\x00','','g');
-			this.m_console_buffer = '';
+	consoleText: function ge_console_text()
+	{
+		var self = this,
+		temp = self.m_console_buffer.replace('\x00','','g');
+		
+		// Don't print anything in @parchment's raw eval() mode
+		if ( self.op_parchment_data.raw_eval )
+		{
+			return '';
+		}
+		else
+		{
+			self.m_console_buffer = '';
 			return temp;
+		}
 	},
 
 	_transcript_text: function ge_transcript_text() {
@@ -4570,7 +4664,7 @@ GnustoEngine.prototype = {
   // |this_instr_pc| is the address of the start of the current instruction.
 	// during compilation. This is not identical to |m_pc|, because that
 	// can point to addresses within the middles of instructions.
-  m_this_instr_pc: 0,
+  //m_this_instr_pc: 0,
 
   // |dict_start| is the address of the dictionary in the Z-machine's memory.
   m_dict_start: 0,
@@ -4783,7 +4877,10 @@ GnustoEngine.prototype = {
 	// for the current interrupt service routines to do their jobs.
 	// Usually ISRs don't interrupt other ISRs, so this stack will have
 	// either one or no elements.
-	m_interrupt_information: []
+	m_interrupt_information: [],
+	
+	// Stuff for @parchment
+	op_parchment_data: {}
 
 };
 

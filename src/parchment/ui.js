@@ -1,16 +1,29 @@
 /*
- * Parchment UI
- *
- * Copyright (c) 2008-2010 The Parchment Contributors
- * Licenced under the GPL v2
- * http://code.google.com/p/parchment
- */
+
+Parchment UI
+============
+
+Copyright (c) 2008-2011 The Parchment Contributors
+BSD licenced
+http://code.google.com/p/parchment
+
+*/
+
+/*
+
+TODO:
+	Fix the stylesheets implementation to actually allow enabling/disabling in IE
+
+*/
+
 (function($){
 
 var window = this,
 
-// Wrap document
+// Wrap window, document and body
+$window = $( window ),
 doc = $( document ),
+body, // Set below
 
 // Cached regexs
 rmobileua = /iPhone|iPod|iPad|Android/i,
@@ -22,14 +35,26 @@ scrollByPages = window.scrollByPages || function( pages )
 	// From Mozilla's nsGfxScrollFrame.cpp
 	// delta = viewportHeight - Min( 10%, lineHeight * 2 )
 	var height = doc[0].documentElement.clientHeight,
-	delta = height - Math.min( height / 10, parseInt( $( 'body' ).css( 'line-height' ) ) * 2 );
+	delta = height - Math.min( height / 10, parseInt( body.css( 'line-height' ) ) * 2 );
 	scrollBy( 0, delta * pages );
 },
 
 // getSelection compatibility-ish. We only care about the text value of a selection
 selection = window.getSelection ||
 	( document.selection && function() { return document.selection.createRange().text; } ) ||
-	function() { return ''; };
+	function() { return ''; },
+
+// Map results callback
+results_link = '<p><a href="' + location.href + '?story=http://mirror.ifarchive.org/',
+map_results_callback = function( story )
+{
+	return results_link + story.path + '">' + story.desc.entityify() + '</a></p>';
+};
+
+// Set the body variable once the document is loaded
+$(function(){
+	body = $( 'body' );
+});
 
 window.gIsIphone = rmobileua.test( navigator.userAgent );
 
@@ -51,6 +76,14 @@ if ( $.browser.msie && parseInt($.browser.version) < 7 )
 
 // The main UI class
 parchment.lib.UI = Object.subClass({
+	init: function( library )
+	{
+		this.library = library;
+		this.panels = {};
+		
+		// Load indicator
+		this.load_indicator = $( '<div class="dialog load"><p>Parchment is loading.<p>&gt; <blink>_</blink></div>' );
+	},
 
 	// Stylesheet management
 	// Add some stylesheets, disabled at first
@@ -59,22 +92,83 @@ parchment.lib.UI = Object.subClass({
 		var args = arguments, i;
 		for ( i = 1; i < args.length; i++ )
 		{
-			$( '<link>', {
-				rel: 'alternate stylesheet',
-				href: args[i],
-				title: args[0]
-			})
-				.appendTo( 'head' )
-				[0].disabled = true;
+			// The IE way...
+			if ( document.createStyleSheet )
+			{
+				document.createStyleSheet( args[i] );
+			}
+			// The better way
+			else
+			{
+				$( '<link>', {
+					rel: 'alternate stylesheet',
+					href: args[i],
+					title: args[0],
+					type: 'text/css'
+				})
+					.appendTo( 'head' )
+					[0].disabled = true;
+			}
 		}
 	},
 	// Switch on/off a stylesheet
 	stylesheet_switch: function( title, enable )
 	{
-		$( 'link[rel*=stylesheet][title=' + title + ']' )
+		$( 'link[rel*="stylesheet"][title="' + title + '"]' )
 			.each( function(){
 				this.disabled = !enable;
+			}); 
+	},
+	
+	// Load panels for the front page
+	load_panels: function()
+	{
+		var panels = parchment.options.panels,
+		search_data, search_input, search_results,
+		
+		// Perform a search of the archive
+		dosearch = function()
+		{
+			// Filter the archive
+			var key = RegExp( search_input.val().replace( ' ', '( )?' ), 'i' ),
+			results = $.grep( search_data, function( story ){
+				return key.test( story.path + story.desc );
 			});
+			// Limit to 30 results
+			results = results.slice( 0, 30 );
+			// Fill the results div
+			search_results.html( $.map( results, map_results_callback ).join('') );
+		};
+		
+		// A search box
+		if ( $.inArray( 'search', panels ) != -1 )
+		{
+			this.panels.search = $( '<div class="panel search"><label for="panel_search">Search the IF Archive for games you can play with Parchment. You might also like to search the <a href="http://ifdb.tads.org">IFDB</a> or the <a href="http://ifwiki.org">IF Wiki</a>.</label><input id="panel_search"><div></div></div>' );
+			
+			search_input = this.panels.search.find( 'input' );
+			search_results = search_input.next();
+				
+			// Load the archive json file
+			search_input.keydown(function(){
+				search_input.unbind( 'keydown' );
+				$.getJSON( 'stories/if-archive.json' )
+					.done(function( data ){
+						search_data = data;
+						// Attach the real handler once the archive's been downloaded, and then run it once
+						search_input.keyup( dosearch );
+						dosearch();
+					});
+			});
+		}
+		
+		// A form to load any story file
+		if ( $.inArray( 'url', panels ) != -1 )
+		{
+			this.panels.url = $( '<form class="panel url"><label for="panel_url">You may use Parchment to play any story file on the internet, simply copy its address here:</label><input id="panel_url" name="story"></form>' );
+		}
+		
+		this.library.container.append( this.panels[ panels[0] ] );
+		this.panels.active = panels[0];
 	}
 
 });
@@ -85,10 +179,9 @@ parchment.lib.TextInput = Object.subClass({
 	// Set up the text inputs with a container and stream
 	// container is the greatest domain for which this instance should control input
 	// stream is the element which the line <input> will actually be inserted into
-	init: function( container, stream )
+	init: function( container, stream, topwindow )
 	{
 		var self = this,
-		container = $( container ),
 		
 		// The line input element
 		lineInput = $( '<input>', {
@@ -123,6 +216,9 @@ parchment.lib.TextInput = Object.subClass({
 					cancel = 1;
 				}
 				
+				// Don't propagate the event
+				event.stopPropagation();
+				
 				// Don't do the default browser action
 				// (For example in Mac OS pressing up will force the cursor to the beginning of a line)
 				if ( cancel )
@@ -151,7 +247,7 @@ parchment.lib.TextInput = Object.subClass({
 			}
 		});
 		
-		// A form to contain it
+		// A form to contain the line input
 		self.form = $( '<form>', {
 			'class': 'LineInput',	
 			submit: function()
@@ -162,20 +258,21 @@ parchment.lib.TextInput = Object.subClass({
 		})
 			.append( lineInput );
 		
-		// Focus clicks in the container (only)
-		// To focus document clicks use UI.addTextInput()
-		container.bind( 'click.TextInput', function() {
+		// Focus document clicks and keydowns
+		doc.bind( 'click.TextInput keydown.TextInput', function( ev ) {
+			
+			// Only intercept things that aren't inputs
+			if ( ev.target.nodeName != 'INPUT' &&
+			
 			// Don't do anything if the user is selecting some text
-			if ( selection() == '' )
+				selection() == '' &&
+				
+			// Or if the cursor is too far below the viewport
+				$window.scrollTop() + $window.height() - lineInput.offset().top > -60 )
 			{
-				if ( $( '.LineInput' ).length )
-				{
-					lineInput.focus();
-				}
-				if ( $( '.CharInput' ).length )
-				{
-					charInput.focus();
-				}
+				$( '.LineInput input, .CharInput' )
+					.focus()
+					.trigger( ev );
 			}
 		});
 		
@@ -183,16 +280,22 @@ parchment.lib.TextInput = Object.subClass({
 		self.history = [];
 		// current and mutable_history are set in .get()
 		
-		self.container = container;
-		self.stream = $( stream );
 		self.lineInput = lineInput;
 		self.charInput = charInput;
+		
+		self.container = $( container );
+		self.stream = $( stream );
+		self.topwindow = $( topwindow );
+		
+		// Find the element which we calculate scroll offsets from
+		// For now just decide by browser
+		self.scrollParent = $.browser.webkit ? body : $( 'html' );
 	},
 	
 	// Cleanup so we can deconstruct
 	die: function()
 	{
-		this.container.unbind( '.TextInput' );
+		doc.unbind( '.TextInput' );
 	},
 	
 	// Get some input
@@ -200,7 +303,9 @@ parchment.lib.TextInput = Object.subClass({
 	{
 		var self = this,
 		prompt = self.stream.children().last(),
-		input = self.lineInput;
+		input = self.lineInput,
+		lastInput = $( '.finished-input' ).last(),
+		scrollParent = self.scrollParent;
 		
 		self.callback = callback || $.noop;
 		
@@ -213,15 +318,26 @@ parchment.lib.TextInput = Object.subClass({
 		self.style = style || '';
 		
 		// Adjust the input's width and ensure it's empty
+		// -1 because it seems slightly too wide in FF4
 		input
-			.width( self.stream.width() - prompt.width() )
+			.width( self.stream.width() - prompt.width() - 1 )
 			.val( '' )
 			.addClass( self.style );
 		
 		prompt.append( self.form );
-		setTimeout( function(){
-			input.focus();
-		}, 1 );
+		
+		// Scroll to the beginning of the last set of output
+		if ( lastInput.length )
+		{
+			scrollParent.scrollTop(
+				// The last input relative to the top of the document
+				lastInput.offset().top
+				// Minus the height of the top window
+				- this.topwindow.height()
+				// Minus one further line
+				- lastInput.height()
+			);
+		}
 	},
 	
 	// Submit the input data

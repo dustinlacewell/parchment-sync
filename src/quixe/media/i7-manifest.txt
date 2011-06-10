@@ -1,4 +1,4 @@
-! This the manifest file for the Parchment in-browser interpreter, and gives
+! This the manifest file for the Quixe in-browser interpreter, and gives
 ! the necessary details to Inform's release component (called cBlorb) so that
 ! the interpreter can be bundled into a released website, all set up ready
 ! to play the IF story file being released.
@@ -9,22 +9,22 @@
 ! of the play page:
 
 [INTERPRETERVERSION]
-Parchment for Inform 7 (2011-06-10)
+Quixe for Inform 7 (v. 1.1.1)
 []
 
 [INTERPRETERURL]
-http://parchment.googlecode.com
+http://eblong.com/zarf/glulx/quixe/
 []
 
 ! Note that we don't set [INTERPRETER]: cBlorb has already set that to the
-! name of the interpreter, in this case, to "Parchment".
+! name of the interpreter, in this case, to "Quixe".
 
 ! This declares whether the interpreter can handle blorbed Z-machine files
 ! ("z"), blorbed Glulx files ("g") or both ("zg" or "gz"). No other values
 ! are legal; note lower case.
 
 [INTERPRETERVM]
-z
+g
 []
 
 ! [INTERPRETERHEAD] provides code to go into the <head> ... </head> of the
@@ -44,30 +44,42 @@ z
 ! to be) "story.zblorb.js".
 
 [INTERPRETERHEAD]
-	<script src="interpreter/jquery.min.js" defer></script>
-	<script src="interpreter/parchment.min.js" defer></script>
-	<link rel="stylesheet" type="text/css" href="interpreter/parchment.css">
-	<script>
-		parchment_options = {
-			default_story: [ "[STORYFILE]", "interpreter/[ENCODEDSTORYFILE]" ],
-			lib_path: 'interpreter/',
-			lock_options: 1,
-			lock_story: 1,
-			page_title: 0
-		};
-	</script>
+<link rel="stylesheet" href="interpreter/glkote.css" type="text/css">
+<link rel="stylesheet" href="interpreter/dialog.css" type="text/css">
+<script src="interpreter/glkote.min.js" type="text/javascript"></script>
+<script src="interpreter/quixe.min.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+game_options = {
+  use_query_story: false,
+  set_page_title: false,
+  inspacing: 0,     // gap between windows
+  outspacing: 0     // gap between windows and edge of gameport
+};
+</script>
+
+<script src="interpreter/[ENCODEDSTORYFILE]" type="text/javascript"></script>
 []
 
 ! [INTERPRETERBODY] provides the part of the page where the window
 ! or gadget actually appears.
 
 [INTERPRETERBODY]
-<div id="about">
-	<h1>Parchment</h1>
-	<p>is an interpreter for Interactive Fiction. <a href="http://parchment.googlecode.com">Find out more.</a></p>
-	<noscript><p>Parchment requires Javascript. Please enable it in your browser.</p></noscript>
+<div id="windowport">
+<noscript><hr>
+<p>You'll need to turn on Javascript in your web browser to play this game.</p>
+<hr></noscript>
 </div>
-<div id="parchment"></div>
+<div id="loadingpane">
+<img src="interpreter/waiting.gif" alt="LOADING"><br>
+<em>&nbsp;&nbsp;&nbsp;Loading...</em>
+</div>
+<div id="errorpane" style="display:none;"><div id="errorcontent">...</div></div>
+<div id="layouttestpane">
+This should not be visible
+<div id="layouttest_grid" class="WindowFrame GridWindow"><div id="layouttest_gridline" class="GridLine"><span id="layouttest_gridspan" class="Style_normal">12345678</span></div><div id="layouttest_gridline2" class="GridLine"><span class="Style_normal">12345678</span></div></div>
+<div id="layouttest_buffer" class="WindowFrame BufferWindow"><div id="layouttest_bufferline" class="BufferLine"><span id="layouttest_bufferspan" class="Style_normal">12345678</span></div><div id="layouttest_bufferline2" class="BufferLine"><span class="Style_normal">12345678</span></div></div>
+</div>
 []
 
 ! The following footnote is added to the small print about how to play IF
@@ -85,11 +97,13 @@ on your web browser.
 ! call with a string argument:
 
 [BASESIXTYFOURTOP]
-processBase64Zcode('
+Event.observe(window, 'load', function() { 
+  GiLoad.load_run(null, '
 []
 
 [BASESIXTYFOURTAIL]
-')
+', 'base64');
+});
 []
 
 ! Outside of the placeholder parts of the manifest, lines beginning '!', or
@@ -98,8 +112,8 @@ processBase64Zcode('
 ! Non-comment lines are the names of files which are copied across when the
 ! release is made. Anything not listed here won't be copied.
 
-gnusto.min.js
-jquery.min.js
-parchment.css
-parchment.min.js
-zmachine.min.js
+glkote.min.js
+quixe.min.js
+dialog.css
+glkote.css
+waiting.gif

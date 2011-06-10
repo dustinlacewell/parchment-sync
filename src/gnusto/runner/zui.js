@@ -8,13 +8,15 @@
  */
 (function($){
 
+var singleSpace = / /g, singleSpaceBetweenWords = /(\S) (\S)/g, backToSpace = /<&>/g;
+
 parchment.lib.ZUI = Object.subClass({
 	// Initiate this ZUI
 	init: function( library, engine, logfunc )
 	{
 		var self = this,
 		
-		widthInChars = ( gIsIphone && $( document.body ).width() <= 480 ) ? 38 : 80;
+		widthInChars = ( gIsIphone && $( document.body ).width() <= 480 ) ? 38 : parchment.options.width;
 		
 		// Set up the HTML we need
 		library.container.html( '<div id="top-window" class="buffered-window"></div><div id="buffered-windows"></div><div id="content" role="log"></div><div id="bottom"></div>' );
@@ -41,7 +43,7 @@ parchment.lib.ZUI = Object.subClass({
 			
 			bottom: $("#bottom"),
 			current_input: $("#current-input"),
-			text_input: new parchment.lib.TextInput( '#parchment', '#content' ),
+			text_input: new parchment.lib.TextInput( '#parchment', '#content', '#top-window' ),
 			
 			_log: logfunc || $.noop,
 			
@@ -150,7 +152,7 @@ parchment.lib.ZUI = Object.subClass({
           if ( !self.hidden_load_indicator )
           {
           	self.hidden_load_indicator = 1;
-          	self.library.load_indicator.detach();
+          	self.library.ui.load_indicator.detach();
           }
           
    	      self._currentCallback = callback;
@@ -170,7 +172,7 @@ parchment.lib.ZUI = Object.subClass({
           if ( !self.hidden_load_indicator )
           {
           	self.hidden_load_indicator = 1;
-          	self.library.load_indicator.detach();
+          	self.library.ui.load_indicator.detach();
           }
           
 	      self.text_input.getChar( callback );
@@ -249,9 +251,12 @@ onRestore: function()
 	    },
 
 	    onFlagsChanged: function(isToTranscript, isFixedWidth) {
-	      if (isToTranscript)
-	        // TODO: Deal with isToTranscript.
-	        throw new FatalError("To transcript not yet implemented!");
+	      if (isToTranscript) {
+	    	  this.onPrint( "This story does not support saving transcripts manually.\n\n" );
+	    	  // Inform prints the "Start of a transcript of" + version information
+	    	  // automatically. It should be removed, but this is still better than
+	    	  // just halting the game.
+	      }
 	      this._isFixedWidth = isFixedWidth;
 	    },
 
@@ -424,31 +429,34 @@ onRestore: function()
 
 	      self._log("print wind: " + self._activeWindow + " output: " +
 	                output.quote() + " style: " + styles);
-
+	      
+	      // Trigger for text output 
+	      $( document ).trigger(
+				{
+					type: 'TextOutput',
+					output: { 
+						'window': self._activeWindow, 
+						'text': output, 
+						'styles': styles 
+					}
+				}
+	      ); 
+	      
 	      if (self._activeWindow == 0) {
 	        var lines = output.split("\n");
 	        for (var i = 0; i < lines.length; i++) {
 
-	          if (lines[i]) {
-	            var chunk = lines[i].entityify();
+				var chunk = lines[i].entityify();
 
-	            // TODO: This isn't an ideal solution for having breaking
-	            // whitespace while preserving its structure, but it
-	            // deals with the most common case.
-	            var singleSpace = / /g, singleSpaceBetweenWords = /(\S) (\S)/g, backToSpace = /<&>/g;
-	            chunk = chunk.replace(
-	              singleSpaceBetweenWords,
-	              "$1<&>$2"
-	            );
-	            chunk = chunk.replace(singleSpace, '&nbsp;');
-	            chunk = chunk.replace(
-	              backToSpace,
-	              "<span class=\"z-breaking-whitespace\"> </span>"
-	            );
+				// TODO: This isn't an ideal solution for having breaking
+				// whitespace while preserving its structure, but it
+				// deals with the most common case.
+				chunk = chunk.replace( singleSpaceBetweenWords, "$1<&>$2" );
+				chunk = chunk.replace( singleSpace, '&nbsp;' );
+				chunk = chunk.replace( backToSpace, ' ' );
 
-	            chunk = '<span class="' + styles + '">' + chunk + '</span>';
-	            $("#content").append(chunk);
-	          }
+				chunk = '<span class="' + styles + '">' + chunk + '</span>';
+				$("#content").append(chunk);
 
 	          if (i < lines.length - 1)
 	            $("#content").append("<br/>");
