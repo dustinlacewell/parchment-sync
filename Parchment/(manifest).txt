@@ -9,7 +9,7 @@
 ! of the play page:
 
 [INTERPRETERVERSION]
-Parchment for Inform 7 (2011-06-10)
+Parchment for Inform 7 (2012-08-12)
 []
 
 [INTERPRETERURL]
@@ -44,9 +44,9 @@ z
 ! to be) "story.zblorb.js".
 
 [INTERPRETERHEAD]
-	<script src="interpreter/jquery.min.js" defer></script>
-	<script src="interpreter/parchment.min.js" defer></script>
-	<link rel="stylesheet" type="text/css" href="interpreter/parchment.css">
+	<script src="interpreter/jquery.min.js"></script>
+	<script src="interpreter/parchment.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="interpreter/parchment.min.css">
 	<script>
 		parchment_options = {
 			default_story: [ "[STORYFILE]", "interpreter/[ENCODEDSTORYFILE]" ],
@@ -98,8 +98,7 @@ processBase64Zcode('
 ! Non-comment lines are the names of files which are copied across when the
 ! release is made. Anything not listed here won't be copied.
 
-gnusto.min.js
 jquery.min.js
-parchment.css
+parchment.min.css
 parchment.min.js
-zmachine.min.js
+zvm.min.js

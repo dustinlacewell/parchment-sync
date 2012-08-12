@@ -18,14 +18,50 @@ TODO:
 
 (function(window, $){
 
-var rqueryurl = /story=([^;&]+)/,
-rqueryvm = /vm=(\w+)/,
-rtitle = /([-\w\s_]+)(\.[\w]+(\.js)?)?$/,
+var rtitle = /([-\w\s_]+)(\.[\w]+(\.js)?)?$/,
 rjs = /\.js$/,
 
-// Callback to show an error if a VM's dependant scripts could be successfully loaded
+// Callback to show an error when the story file wasn't loaded
 story_get_fail = function(){
-	throw new FatalError( 'Parchment could not load load the story. Check your connection, and that the URL is correct.' );
+	throw new FatalError( 'Parchment could not load the story. Check your connection, and that the URL is correct.' );
+},
+
+// Launcher. Will be run by jQuery.when(). jqXHR is args[2]
+launch_callback = function( args )
+{
+	// Hide the load indicator
+	$( '.load' ).detach();
+	
+	// Create a runner
+	var runner = window.runner = new ( window[args[2].vm.runner] || Runner )(
+		parchment.options,
+		args[2].vm.engine
+	),
+	
+	savefile = location.hash;
+	
+	// Add the callback
+	runner.toParchment = function( event ) { args[2].library.fromRunner( runner, event ); };
+	
+	// Load it up!
+	runner.fromParchment({
+		code: 'load',
+		data: ( new parchment.lib.Story( args[2].responseArray ) ).data
+	});
+	
+	// Restore if we have a savefile
+	if ( savefile && savefile != '#' ) // IE will set location.hash for an empty fragment, FF won't
+	{
+		runner.fromParchment({
+			code: 'restore',
+			data: file.base64_decode( savefile.slice( 1 ) )
+		});
+	}
+	// Restart if we don't
+	else
+	{
+		runner.fromParchment({ code: 'restart' });
+	}
 };
 
 // Callback to show an error if a VM's dependant scripts could be successfully loaded
@@ -52,7 +88,7 @@ parchment.lib.Story = IFF.subClass({
 				type: 'ZCOD',
 				data: data
 			});
-			this.zcode = data;
+			this.data = data;
 		}
 		
 		// Check for naked glulx
@@ -64,7 +100,7 @@ parchment.lib.Story = IFF.subClass({
 				type: 'GLUL',
 				data: data
 			});
-			this.glulx = data;
+			this.data = data;
 		}
 		
 		// Check for potential zblorb
@@ -94,11 +130,11 @@ parchment.lib.Story = IFF.subClass({
 					// Parchment uses the first ZCOD/GLUL chunk it finds, but the Blorb spec says the RIdx chunk should be used
 					if ( type == 'ZCOD' && !this.zcode )
 					{
-						this.zcode = this.chunks[i].data;
+						this.data = this.chunks[i].data;
 					}
 					else if ( type == 'GLUL' && !this.glulx )
 					{
-						this.glulx = this.chunks[i].data;
+						this.data = this.chunks[i].data;
 					}
 						
 					else if (type == 'IFmd')
@@ -148,14 +184,7 @@ parchment.lib.Story = IFF.subClass({
 /*		else
 			// Not a story file
 			this.filetype = 'error unknown general';
-*/	},
-
-	// Load zcode into engine
-	load: function loadIntoEngine(engine)
-	{
-		if (this.zcode)
-			engine.loadStory(this.zcode);
-	}
+*/	}
 });
 
 // Story file cache
@@ -188,9 +217,9 @@ Library = Object.subClass({
 		
 		options = parchment.options,
 		
-		storyfile = rqueryurl.exec( location.search ),
+		storyfile = urloptions.story,
 		url,
-		vm = rqueryvm.exec( location.search ),
+		vm = urloptions.vm,
 		i = 0;
 		
 		// Run the default story only
@@ -208,7 +237,7 @@ Library = Object.subClass({
 		else if ( options.default_story || storyfile )
 		{
 			// Load from URL, or the default story
-			storyfile = storyfile && unescape( storyfile[1] ) || options.default_story;
+			storyfile = storyfile || options.default_story;
 		}
 		// Show the library
 		else
@@ -249,7 +278,7 @@ Library = Object.subClass({
 			// If a VM was explicitly specified, use it
 			if ( vm )
 			{
-				vm = parchment.vms[ vm[1] ];
+				vm = parchment.vms[ vm ];
 			}
 			// Otherwise test each in turn
 			else
@@ -294,6 +323,7 @@ Library = Object.subClass({
 				.done( function( data, textStatus, jqXHR )
 				{
 					jqXHR.library = self;
+					jqXHR.vm = vm;
 				})
 				// Some error in downloading
 				.fail( story_get_fail )
@@ -301,7 +331,30 @@ Library = Object.subClass({
 		],
 		
 		// Get the scripts if they haven't been loaded already
-		scripts = [],
+		/* DEBUG */
+			scripts = [$.Deferred()],
+			script_callback = function()
+			{
+				if ( vm.files.length == 0 )
+				{
+					scripts[0].resolve();
+					return;
+				}
+				var dependency = parchment.options.lib_path + vm.files.shift();
+				if ( rjs.test( dependency ) )
+				{
+					$.getScript( dependency, script_callback );
+				}
+				// CSS
+				else
+				{
+					parchment.library.ui.stylesheet_add( vm.id, dependency );
+					script_callback();
+				}
+			},
+		/* ELSEDEBUG
+			scripts = [],
+		/* ENDDEBUG */
 		i = 0,
 		dependency;
 		
@@ -309,21 +362,25 @@ Library = Object.subClass({
 		{
 			vm.loaded = 1;
 			
-			while ( i < vm.files.length )
-			{
-				dependency = parchment.options.lib_path + vm.files[i++];
-				// JS
-				if ( rjs.test( dependency ) )
+			/* DEBUG */
+				script_callback();
+			/* ELSEDEBUG
+				while ( i < vm.files.length )
 				{
-					scripts.push( $.getScript( dependency ) );
+					dependency = parchment.options.lib_path + vm.files[i++];
+					// JS
+					if ( rjs.test( dependency ) )
+					{
+						scripts.push( $.getScript( dependency ) );
+					}
+					// CSS
+					else
+					{
+						this.ui.stylesheet_add( vm.id, dependency );
+					}
 				}
-				// CSS
-				else
-				{
-					this.ui.stylesheet_add( vm.id, dependency );
-				}
-			}
-			
+			/* ENDDEBUG */
+
 			// Use jQuery.when() to get a promise for all of the scripts
 			actions[1] = $.when.apply( 1, scripts );
 				//.fail( scripts_fail );
@@ -331,9 +388,31 @@ Library = Object.subClass({
 		
 		// Add the launcher callback
 		$.when.apply( 1, actions )
-			.done( vm.launcher );
+			.done( launch_callback );
 	},
-
+	
+	// An event from a runner
+	fromRunner: function( runner, event )
+	{
+		var code = event.code,
+		savefile = location.hash;
+		
+		if ( code == 'save' )
+		{
+			location.hash = file.base64_encode( event.data );
+		}
+		
+		if ( code == 'restore' )
+		{
+			if ( savefile && savefile != '#' )
+			{
+				event.data = file.base64_decode( savefile.slice( 1 ) );
+			}
+		}
+		
+		runner.fromParchment( event );
+	},
+	
 	// Loaded stories and savefiles
 	stories: new StoryCache(),
 	savefiles: {}
@@ -343,5 +422,10 @@ parchment.lib.Library = Library;
 
 // VM definitions
 parchment.vms = [];
+parchment.add_vm = function( defn )
+{
+	parchment.vms.push( defn );
+	parchment.vms[defn.id] = defn;
+};
 
 })(window, jQuery);

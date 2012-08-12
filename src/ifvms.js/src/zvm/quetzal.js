@@ -1,13 +1,16 @@
 /*
- * Quetzal Common Save-File Format
- *
- * Copyright (c) 2008-2010 The Gnusto Contributors
- * Licenced under the GPL v2
- * http://github.com/curiousdannii/gnusto
- */
+
+Quetzal Common Save-File Format
+===============================
+
+Copyright (c) 2011 The ifvms.js team
+BSD licenced
+http://github.com/curiousdannii/ifvms.js
+
+*/
 
 // A savefile
-window.Quetzal = IFF.subClass({
+var Quetzal = IFF.subClass({
 	// Parse a Quetzal savefile, or make a blank one
 	init: function(bytes)
 	{
