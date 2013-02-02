@@ -222,33 +222,45 @@ TextInput = Object.subClass({
 	},
 	
 	// Submit the input data
-	submitLine: function()
+	submitLine: function(userNick)
 	{
 		var command = this.input.val();
 		
-		// Attach the last input marker
-		this.lastinput.appendTo( this.input.parent() );
-		
-		// Hide the <input>
-		this.input.detach();
-		
-		// Add this command to the history, as long as it's not the same as the last, and not blank
-		if ( command != this.history[0] && /\S/.test( command ) )
-		{
-			this.history.unshift( command );
+		if (userNick) {
+			var $author = $('<span>',{text:userNick, class:"author"});
+			$author.css('color', stringToRGB(userNick));
+			// $author.css('text-shadow', "1px 1px 1px " + stringToRGB(userNick, true));
+			this.input.before($author);
+
+			// Attach the last input marker
+			this.lastinput.appendTo( this.input.parent() );
+
+			// Hide the <input>
+			this.input.detach();
+
+			this.mode = 0;
+			this.order.response = command;
+			this.order.terminator = 13;
+			this.callback( this.order );
+		} else {
+			// Add this command to the history, as long as it's not the same as the last, and not blank
+			if ( command != this.history[0] && /\S/.test( command ) )
+			{
+				this.history.unshift( command );
+			}
+			
+			// Trigger a custom event for anyone listening in for commands
+			$doc.trigger({
+				type: 'TextInput',
+				mode: 'line',
+				input: command
+			});
+
+			sendToServer("MSG", {
+				mode: 'line',
+				input: command
+			});
 		}
-		
-		// Trigger a custom event for anyone listening in for commands
-		$doc.trigger({
-			type: 'TextInput',
-			mode: 'line',
-			input: command
-		});
-		
-		this.mode = 0;
-		this.order.response = command;
-		this.order.terminator = 13;
-		this.callback( this.order );
 	},
 	
 	// Get the previous/next command from history
@@ -285,7 +297,7 @@ TextInput = Object.subClass({
 	},
 	
 	// Submit the input data
-	submitChar: function()
+	submitChar: function(userNick)
 	{
 		var keyCode = this.keyCode,
 		charCode = this.charCode,
@@ -311,8 +323,15 @@ TextInput = Object.subClass({
 			input: input
 		});
 		
-		this.mode = 0;
-		this.order.response = input;
-		this.callback( this.order );
+		if (userNick) {
+			this.mode = 0;
+			this.order.response = input;
+			this.callback( this.order );
+		} else {
+			sendToServer("MSG", {
+				mode: 'char',
+				input: input
+			});
+		}
 	}
 });

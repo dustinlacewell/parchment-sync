@@ -34,6 +34,10 @@ $(function()
 	/* DEBUG */
 	parchment.options.debug = urloptions.debug;
 	/* ENDDEBUG */
+
+	window.server = new IFS('', '127.0.0.1', 1337);
+	if (!server.connection)
+		console.log('No websocket, son');
 	
 	// Load the library
 	library = new parchment.lib.Library();

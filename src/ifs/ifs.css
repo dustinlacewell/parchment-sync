@@ -1,0 +1,73 @@
+#about {display:none;}
+
+#ifs {
+	display: none;
+	position: absolute;
+	white-space: normal;
+	text-align: center;
+	left: 50%;
+	top: 40%;
+	/*height:50px;*/
+	width:230px;
+	margin:-25px 0 0 -115px;
+	background:#eee;
+	border-radius:4px;
+	box-shadow: 5px 5px 5px #888;
+}
+
+.author {
+	position: absolute;
+	width: 110px;
+	overflow: hidden;
+	margin-left: -135px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-align: right;
+	text-shadow: 1px 1px 1px #000;
+}
+
+#setuperror {
+	display: none;
+	padding-top: 8px;
+	color: #C00;
+}
+#nick {
+	display: none;
+	padding: 25px 0 25px 0;
+}
+	#nick input {
+		width: 100px;
+	}
+
+#names {
+	position: fixed;
+	right: 0;
+}
+
+#rooms {
+	display: none;
+	padding: 10px 0 10px 0;
+}
+	#rooms ul{
+		padding: 8px;
+	}
+	#rooms li{
+		cursor: pointer;
+	}
+	#rooms li:hover{
+		background: #ccc;
+	}
+
+#games {
+	display: none;
+	padding: 10px 0 10px 0;
+}
+	#games ul{
+		padding-top: 8px;
+	}
+	#games li{
+		cursor: pointer;
+	}
+	#games li:hover{
+		background: #ccc;
+	}
