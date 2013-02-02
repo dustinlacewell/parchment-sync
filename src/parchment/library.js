@@ -247,6 +247,7 @@ Library = Object.subClass({
 		
 		// Hide the #about, until we can do something more smart with it
 		$('#about').remove();
+		$('#ifs').hide();
 		
 		// Show the load indicator
 		$( 'body' ).append( self.ui.load_indicator );
