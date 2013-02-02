@@ -92,6 +92,12 @@ parchment.lib.UI = Object.subClass({
 			// Fill the results div
 			search_results.html( $.map( results, map_results_callback ).join('') );
 		};
+
+		// IFS Join panel
+		if ( $.inArray( 'ifs', panels ) != -1 )
+		{
+			this.panels.ifs = $('#ifs').css('display','block');
+		}
 		
 		// A search box
 		if ( $.inArray( 'search', panels ) != -1 )

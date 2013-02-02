@@ -55,7 +55,7 @@ var parchment = {
 		page_title: 1,
 		
 		// Front page panels to display if no default story
-		panels: [ 'search', 'url', 'about' ],
+		panels: [ 'ifs', 'search', 'url', 'about' ],
 		
 		// URL of proxy server to use for files we can't directly load
 		proxy_url: 'http://zcode.appspot.com/proxy/'
@@ -75,7 +75,7 @@ urloptions = (function( options ) {
 	while ( i < options.length )
 	{
 		temp = /([^=]+)(=(.*))?/.exec( options[i++] );
-		result[temp[1]] = temp[3] ? unescape( temp[3] ) : true;
+		result[temp[1]] = temp[3] ? unescape( temp[3].split('+').join('%20') ) : true;
 	}
 	return result;
 } )( location.search.slice(1).split( /[&;]/g ) );
