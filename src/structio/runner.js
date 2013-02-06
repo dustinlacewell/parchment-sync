@@ -90,6 +90,8 @@ var Runner = Object.subClass({
 				// Reset the IO structures
 				this.io.target = this.io.container.empty();
 				sendevent = 1;
+				// TODO: Prevent this from being send by ALL clients
+				sendToServer("SAVE", null);
 			}
 			
 			// Tick - ie, do nothing

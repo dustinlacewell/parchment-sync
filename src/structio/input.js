@@ -225,12 +225,14 @@ TextInput = Object.subClass({
 	submitLine: function(userNick)
 	{
 		var command = this.input.val();
+
+		if (command.toLowerCase() == "save"){
+			userNick = $('#name').val();
+		}
+		console.log("submitLine", command);
 		
 		if (userNick) {
-			var $author = $('<span>',{text:userNick, class:"author"});
-			$author.css('color', stringToRGB(userNick));
-			// $author.css('text-shadow', "1px 1px 1px " + stringToRGB(userNick, true));
-			this.input.before($author);
+			this.input.before(makeAuthor(userNick));
 
 			// Attach the last input marker
 			this.lastinput.appendTo( this.input.parent() );
@@ -260,6 +262,8 @@ TextInput = Object.subClass({
 				mode: 'line',
 				input: command
 			});
+			if (command.toLowerCase() == "restore")
+				sendToServer('RESTORE', '');
 		}
 	},
 	

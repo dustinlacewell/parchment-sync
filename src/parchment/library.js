@@ -36,9 +36,7 @@ launch_callback = function( args )
 	var runner = window.runner = new ( window[args[2].vm.runner] || Runner )(
 		parchment.options,
 		args[2].vm.engine
-	),
-	
-	savefile = location.hash;
+	);
 	
 	// Add the callback
 	runner.toParchment = function( event ) { args[2].library.fromRunner( runner, event ); };
@@ -50,11 +48,11 @@ launch_callback = function( args )
 	});
 	
 	// Restore if we have a savefile
-	if ( savefile && savefile != '#' ) // IE will set location.hash for an empty fragment, FF won't
+	if ( urloptions.save )
 	{
 		runner.fromParchment({
 			code: 'restore',
-			data: file.base64_decode( savefile.slice( 1 ) )
+			data: file.base64_decode( urloptions.save )
 		});
 	}
 	// Restart if we don't
@@ -395,20 +393,17 @@ Library = Object.subClass({
 	// An event from a runner
 	fromRunner: function( runner, event )
 	{
-		var code = event.code,
-		savefile = location.hash;
+		var code = event.code;
 		
 		if ( code == 'save' )
 		{
-			location.hash = file.base64_encode( event.data );
+			console.log("Saving...");
+			sendToServer('SAVE', file.base64_encode( event.data ));
 		}
 		
 		if ( code == 'restore' )
 		{
-			if ( savefile && savefile != '#' )
-			{
-				event.data = file.base64_decode( savefile.slice( 1 ) );
-			}
+			console.log("Loading...");
 		}
 		
 		runner.fromParchment( event );

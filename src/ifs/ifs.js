@@ -1,5 +1,7 @@
 $(function(){
 
+jQuery.fn.reverse = [].reverse;
+
 var rooms;
 
 window.WebSocket = window.WebSocket || window.MozWebSocket;
@@ -59,24 +61,28 @@ window.IFS = Object.subClass({
 				}
 				break;
 			case "JOIN":
-				console.log(json.data + " joined the game!");
+				// console.log(json.data + " joined the game!");
 				break;
 			case "PART":
-				console.log(json.data + " left the game!");
+				// console.log(json.data + " left the game!");
 				break;
 			case "HISTORY":
 				// Load up the game and push history through engine
 				urloptions.story = rooms[urloptions.room];
-				parchment.library.load();
+				urloptions.save = json.data.save;
+				var library = new parchment.lib.Library();
+				parchment.library = library;
+				library.load();
+				// TODO: what if MSG is recieved while loading game/history?
 
 				var t = setInterval(function(){
-					if (runner) {
+					if (runner != undefined) {
 						clearInterval(t);
 						console.log("Loading room history...");
-						// runner.fromParchment({ code: 'jump' });
-						for (var i in json.data){
-							console.log(json.data[i]);
-							processCommand(json.data[i]);
+						var commands = json.data.commands;
+						for (var i in commands){
+							console.log(commands[i]);
+							processCommand(commands[i]);
 						}
 					}
 				}, 50);
@@ -102,6 +108,12 @@ window.IFS = Object.subClass({
 				// hideStartups();
 				// $('#games').show();
 				break;
+			case "RESTORE":
+				runner.fromParchment({
+					code: 'restore',
+					data: file.base64_decode(json.data)
+				});
+				break;
 			default:
 				console.log('Hmm..., I\'ve never seen JSON like this: ', json);
 		}
@@ -110,14 +122,46 @@ window.IFS = Object.subClass({
 
 function processCommand(data){
 	var ti = runner.io.TextInput;
-	if (data.mode == "line"){
-		$('.TextInput').val(data.input);
-		ti.submitLine(data.name);
-	} else {
-		ti.keyCode = data.input.keyCode;
-		ti.charCode = data.input.charCode;
-		ti.submitChar(data.name);
+	switch(data.mode){
+		case "line":
+			var t = ti.input.val();
+			if (data.input.slice(0,1) == '.'){
+				// Manually add chat lines
+				var html = makeAuthor(data.name)[0].outerHTML;
+				html += $('<p>').text(data.input.slice(1)).html(); // HTML escape using jQuery
+				processHTML(html);
+			} else {
+				ti.input.val(data.input);
+				ti.submitLine(data.name);
+			}
+			if (t != data.input)
+				ti.input.val(t);
+			break;
+		case "char":
+			ti.keyCode = data.input.keyCode;
+			ti.charCode = data.input.charCode;
+			ti.submitChar(data.name);
+			break;
+		case "html":
+			processHTML(data.input);
+			break;
 	}
+}
+
+function processHTML(html){
+	var $lines = $('.main > span').reverse(),
+	    input = runner.io.TextInput.input.detach()
+	$lines.each(function(){
+		var text = $(this).html().split("\n\n");
+		if (text.length > 1){
+			text.splice(text.length-1, 0, html);
+			$(this).html(text.join("\n\n"));
+			return false;
+		}
+	});
+	// TODO: Set input focus?
+	$lines.first().append(input);
+	input.val('').focus();
 }
 
 window.sendToServer = function(type, data){
@@ -131,12 +175,19 @@ function onRoomClick(){
 	window.location = "?room=" + room;
 }
 
+window.makeAuthor = function(userNick){
+	var $author = $('<span>',{text:userNick, class:"author"});
+	$author.css('color', stringToRGB(userNick));
+	// $author.css('text-shadow', "1px 1px 1px " + stringToRGB(userNick, true));
+	return $author;
+}
+
 window.formatTime = function(time){
 	return (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
 		 + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes());
 }
 
-window.stringToRGB = function(str, invert){
+function stringToRGB(str, invert){
 	var hash = 0;
 	for (var i = 0; i < str.length; i++)
 		hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -158,7 +209,7 @@ $('#name').keydown(function(e){
 });
 
 $doc.on('TextInput', function(evt){
-	console.log(evt.mode + " - " + evt.input, evt.input.charCode, evt.input.keyCode);
+	// console.log(evt.mode + " - " + evt.input, evt.input.charCode, evt.input.keyCode);
 });
 
 });

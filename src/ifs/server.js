@@ -74,8 +74,21 @@ var ChatRoom = (function() {
 			this.history.push(msg);
 			this.send("MSG", msg);
 		},
+		sendHTML: function(html){
+			var msg = {
+				time: (new Date()).getTime(),
+				mode: "html",
+				input: html
+			};
+			this.history.push(msg);
+			this.send("MSG", msg);
+		},
 		sendHistory: function(client){
-			client.send("HISTORY", this.history);
+			client.send("HISTORY", {
+				save: this.save,
+				commands: this.history,
+				chat: []
+			});
 		},
 		sendNames: function(){
 			this.send("NAMES", Object.keys(this.clients));
@@ -86,7 +99,8 @@ var ChatRoom = (function() {
 				return false;
 			client.name = name;
 			client.room = this.title;
-			this.send("JOIN", client.name);
+			// this.send("JOIN", client.name);
+			this.sendHTML("<b>"+sanitize(client.name).entityEncode()+"</b> joined!");
 			this.sendHistory(client);
 			this.clients[client.name] = client;
 			this.sendNames();
@@ -95,14 +109,23 @@ var ChatRoom = (function() {
 		clientPart: function(client){
 			client.room = null;
 			delete this.clients[client.name];
-			this.send("PART", client.name);
+			// this.send("PART", client.name);
+			this.sendHTML("<b>"+sanitize(client.name).entityEncode()+"</b> left!");
 			this.sendNames();
+		},
+		saveGame: function(data){
+			this.save = data;
+			this.history = [];
+		},
+		restoreGame: function(){
+			this.send("RESTORE", this.save);
+			this.history = [];
 		}
 	}
 	return ChatRoom;
 })();
 
-var room1 = new ChatRoom("Cruel's Test Room", "http://www.ifarchive.org/if-archive/games/zcode/bj.z5");
+var room1 = new ChatRoom("Cruel's Test Room", "http://www.ifarchive.org/if-archive/games/zcode/troll.z5");
 // var room1 = new ChatRoom("Cruel's Test Room", "http://inform7.com/learn/eg/glass/Glass.zblorb");
 rooms["Cruel's Test Room"] = room1;
 
@@ -140,12 +163,18 @@ wsServer.on('request', function(request) {
 					rooms[client.room].sendMsg(client, json.data);
 					break;
 				case "JOIN":
-					if (rooms[json.data.room]){
+					if (rooms[json.data.room]) {
 						rooms[json.data.room].clientJoin(client, json.data.name);
 					} else
 						console.log("Room \""+rooms[json.data.room]+"\" doesn't exist");
 					break;
 				case "PART":
+					break;
+				case "SAVE":
+					rooms[client.room].saveGame(json.data);
+					break;
+				case "RESTORE":
+					rooms[client.room].restoreGame();
 					break;
 			}
 		}
