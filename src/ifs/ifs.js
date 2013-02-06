@@ -84,6 +84,7 @@ window.IFS = Object.subClass({
 							console.log(commands[i]);
 							processCommand(commands[i]);
 						}
+						inputFocus();
 					}
 				}, 50);
 				break;
@@ -133,6 +134,7 @@ function processCommand(data){
 			} else {
 				ti.input.val(data.input);
 				ti.submitLine(data.name);
+				inputFocus();
 			}
 			if (t != data.input)
 				ti.input.val(t);
@@ -148,6 +150,12 @@ function processCommand(data){
 	}
 }
 
+function inputFocus(){
+	var input = runner.io.TextInput.input;
+	if ( $window.scrollTop() + $window.height() - input.offset().top > -150 )
+		input.focus();
+}
+
 function processHTML(html){
 	var $lines = $('.main > span').reverse(),
 	    input = runner.io.TextInput.input.detach()
@@ -159,9 +167,9 @@ function processHTML(html){
 			return false;
 		}
 	});
-	// TODO: Set input focus?
 	$lines.first().append(input);
-	input.val('').focus();
+	input.val('');
+	inputFocus();
 }
 
 window.sendToServer = function(type, data){
