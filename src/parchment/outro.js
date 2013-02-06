@@ -35,7 +35,7 @@ $(function()
 	parchment.options.debug = urloptions.debug;
 	/* ENDDEBUG */
 
-	window.server = new IFS('', '127.0.0.1', 1337);
+	window.server = new IFS('', 'cruels.net', 1337);
 	if (!server.connection)
 		console.log('No websocket, son');
 	
@@ -43,12 +43,6 @@ $(function()
 	library = new parchment.lib.Library();
 	parchment.library = library;
 	library.load();
-
-	// Add the Analytics tracker, but only if we're at iplayif.com
-	if ( location.href.indexOf( 'iplayif.com' ) != -1 )
-	{
-		$.getScript( 'http://google-analytics.com/ga.js', function(){_gat._getTracker( 'UA-7949545-3' )._trackPageview();} );
-	}
 });
 
 })( this, jQuery );
