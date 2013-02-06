@@ -226,6 +226,9 @@ TextInput = Object.subClass({
 	{
 		var command = this.input.val();
 
+		if (command == "")
+			return;
+
 		if (command.toLowerCase() == "save"){
 			userNick = $('#name').val();
 		}

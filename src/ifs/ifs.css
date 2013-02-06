@@ -66,10 +66,11 @@ ul { list-style-type: none; }
 	padding: 10px 0 10px 0;
 }
 	#games ul{
-		padding-top: 8px;
+		padding: 8px;
 	}
 	#games li{
 		cursor: pointer;
+		margin-bottom: 20px;
 	}
 	#games li:hover{
 		background: #ccc;

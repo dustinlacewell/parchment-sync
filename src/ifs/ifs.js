@@ -49,15 +49,18 @@ window.IFS = Object.subClass({
 				var $rooms = $('#rooms ul');
 			    rooms = json.data;
 				$rooms.empty();
+				$('#ifs > div').hide();
+				$('#rooms').show();
 				for (var room in rooms){
 					var button = $('<li>', {text: room, class:"room"});
 					button.data('room', room);
 					button.click(onRoomClick);
 					$rooms.append(button);
 				}
-				if (urloptions.room && rooms[urloptions.room]){
-					$('#ifs > div').hide(); 
-					$('#nick').show(); 
+				if (urloptions.room && rooms[urloptions.room]){ 
+					$('#rooms').hide();
+					$('#nick').show();
+					$('#name').focus(); 
 				}
 				break;
 			case "JOIN":
@@ -70,9 +73,7 @@ window.IFS = Object.subClass({
 				// Load up the game and push history through engine
 				urloptions.story = rooms[urloptions.room];
 				urloptions.save = json.data.save;
-				var library = new parchment.lib.Library();
-				parchment.library = library;
-				library.load();
+				loadParchmentIFS();
 				// TODO: what if MSG is recieved while loading game/history?
 
 				var t = setInterval(function(){
@@ -84,7 +85,6 @@ window.IFS = Object.subClass({
 							console.log(commands[i]);
 							processCommand(commands[i]);
 						}
-						inputFocus();
 					}
 				}, 50);
 				break;
@@ -95,19 +95,6 @@ window.IFS = Object.subClass({
 				for (i in names){
 					$names.append($('<p>', {text:names[i]}));
 				}
-				// $('#setup').hide(); 
-				break;
-			case "GAMES":
-				// var games = json.data;
-				// $games.empty();
-				// for (i in games){
-				// 	var button = $('<li>', {text: games[i], class:"room"});
-				// 	button.data('game', games[i]);
-				// 	button.click(onGameClick);
-				// 	$games.append(button);
-				// }
-				// hideStartups();
-				// $('#games').show();
 				break;
 			case "RESTORE":
 				runner.fromParchment({
@@ -152,7 +139,7 @@ function processCommand(data){
 
 function inputFocus(){
 	var input = runner.io.TextInput.input;
-	if ( $window.scrollTop() + $window.height() - input.offset().top > -150 )
+	if ( $(window).scrollTop() + $(window).height() - input.offset().top > -150 )
 		input.focus();
 }
 
@@ -175,7 +162,7 @@ function processHTML(html){
 window.sendToServer = function(type, data){
 	var json = JSON.stringify({ type:type, data:data });
 	server.connection.send(json); 
-}
+};
 
 function onRoomClick(){
 	// sendToServer("JOIN", $(this).data('room'));
@@ -188,12 +175,18 @@ window.makeAuthor = function(userNick){
 	$author.css('color', stringToRGB(userNick));
 	// $author.css('text-shadow', "1px 1px 1px " + stringToRGB(userNick, true));
 	return $author;
-}
+};
 
 window.formatTime = function(time){
 	return (dt.getHours() < 10 ? '0' + dt.getHours() : dt.getHours()) + ':'
 		 + (dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes());
 }
+
+window.loadParchmentIFS = function(){
+	var library = new parchment.lib.Library();
+	parchment.library = library;
+	library.load();
+};
 
 function stringToRGB(str, invert){
 	var hash = 0;
@@ -214,6 +207,46 @@ $('#name').keydown(function(e){
 	}
 }).keyup(function(){
 	$(this).css('color', stringToRGB($(this).val()));
+});
+
+$('#rooms button').click(function(){
+	console.log('new room...');
+	$('#rooms').hide();
+	$('#games').show();
+});
+
+map_results_callback = function( story ){
+	return $('<li>', {text: story.desc})
+		.click(function(){
+			var title = $('#roomtitle').val();
+			if ($.trim(title) != '') {
+				sendToServer("JOIN", {
+					room: title,
+					url: "http://mirror.ifarchive.org/"+story.path
+				});
+			} else
+				$('#setuperror').show().text("Enter a room title.");	
+		});
+};
+
+$('#search').keydown(function(){
+	var $this = $(this);
+	$this.unbind( 'keydown' );
+	$.getJSON( 'stories/if-archive.json' )
+		.done(function( data ){
+			var dosearch = function() {
+				// Filter the archive
+				var key = RegExp( $('#search').val().replace( ' ', '( )?' ), 'i' ),
+				results = $.grep( data, function( story ){
+					return key.test( story.path + story.desc );
+				});
+				results = results.slice( 0, 30 );
+				$('#games ul').empty().append($.map(results, map_results_callback));
+			};
+			// Attach the real handler once the archive's been downloaded, and then run it once
+			$this.keyup( dosearch );
+			dosearch();
+		});
 });
 
 });

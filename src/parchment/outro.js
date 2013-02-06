@@ -14,9 +14,7 @@ var parchment = window.parchment;
 
 // Load Parchment, start it all up!
 $(function()
-{
-	var library;
-	
+{	
 	// Check for any customised options
 	if ( window.parchment_options )
 	{
@@ -40,9 +38,7 @@ $(function()
 		console.log('No websocket, son');
 	
 	// Load the library
-	library = new parchment.lib.Library();
-	parchment.library = library;
-	library.load();
+	loadParchmentIFS();
 });
 
 })( this, jQuery );

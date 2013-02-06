@@ -125,10 +125,6 @@ var ChatRoom = (function() {
 	return ChatRoom;
 })();
 
-var room1 = new ChatRoom("Cruel's Test Room", "http://www.ifarchive.org/if-archive/games/zcode/troll.z5");
-// var room1 = new ChatRoom("Cruel's Test Room", "http://inform7.com/learn/eg/glass/Glass.zblorb");
-rooms["Cruel's Test Room"] = room1;
-
 
 // HTTP Server
 var server = http.createServer(function(request, response) {
@@ -143,14 +139,12 @@ server.listen(port, function() {
 var wsServer = new webSocketServer({httpServer: server});
  
 wsServer.on('request', function(request) {
-	console.log((new Date()) + ' Connection from origin ' + request.origin + '.');
+	console.log((new Date()) + ' Connection from ' + request.remoteAddress + '.');
 	// should check 'request.origin' (http://en.wikipedia.org/wiki/Same_origin_policy)
 	var connection = request.accept(null, request.origin),
 		client = new Client(connection),
 		room;
  
-	console.log((new Date()) + ' Connection accepted.');
-	// client.send("LIST", Object.keys(rooms));
 	client.sendList();
  
 	connection.on('message', function(message) {
@@ -159,14 +153,16 @@ wsServer.on('request', function(request) {
 			console.log(json);
 			switch(json.type){
 				case "MSG":
-					// console.log((new Date()) + ' Received Message from '+ client.name + ': ' + json.data);
 					rooms[client.room].sendMsg(client, json.data);
 					break;
 				case "JOIN":
-					if (rooms[json.data.room]) {
+					if (json.data.url) {
+						if (!rooms[json.data.room])
+							rooms[json.data.room] = new ChatRoom(json.data.room, json.data.url);
+						client.sendList();
+					} else if (rooms[json.data.room]) {
 						rooms[json.data.room].clientJoin(client, json.data.name);
-					} else
-						console.log("Room \""+rooms[json.data.room]+"\" doesn't exist");
+					}
 					break;
 				case "PART":
 					break;
