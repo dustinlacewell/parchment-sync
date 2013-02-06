@@ -9,9 +9,28 @@
 	<meta name="viewport" content="width=device-width,user-scalable=no">
 </head>
 <body>
+	<div id="names"></div>
+	<div id="ifs">
+		<div id="setuperror"></div>
+		<div id="connecting">
+			Connecting to server. Please wait...
+		</div>
+		<div id="nick">
+			Who are you? <input id="name" type="text" placeholder="Nickname" />
+		</div>
+		<div id="rooms">
+			Choose your adventure:
+			<ul></ul>
+			<button>New</button>
+		</div>
+		<div id="games">
+			<input type="text" placeholder="Room Title" />
+		    <ul></ul>
+		</div>
+	</div>
 	<div id="about">
 		<h1>Parchment</h1>
-		<p>is an interpreter for Interactive Fiction, and now plays both Z-Machine and Glulx stories! <a href="http://parchment.googlecode.com">Find out more.</a></p>
+		<p>is an interpreter for Interactive Fiction. <a href="https://github.com/Cruel/parchment-sync">Find out more.</a></p>
 		<noscript><p>Parchment requires Javascript. Please enable it in your browser.</p></noscript>
 	</div>
 	<div id="parchment"></div>

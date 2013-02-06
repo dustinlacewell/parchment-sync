@@ -208,8 +208,4 @@ $('#name').keydown(function(e){
 	$(this).css('color', stringToRGB($(this).val()));
 });
 
-$doc.on('TextInput', function(evt){
-	// console.log(evt.mode + " - " + evt.input, evt.input.charCode, evt.input.keyCode);
-});
-
 });

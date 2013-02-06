@@ -11,6 +11,7 @@ includes = (
 	('.build/parchment.js', (
 		'src/lib/class.js',
 		'src/lib/iff.js',
+		'src/ifs/ifs.js',
 		'src/structio/intro.js',
 		'src/structio/input.js',
 		'src/structio/textgrid.js',
@@ -30,6 +31,7 @@ includes = (
 	('.build/parchment.css', (
 		'src/parchment/parchment.css',
 		'src/structio/structio.css',
+		'src/ifs/ifs.css',
 	)),
 	('.build/gnusto.js', (
 		'src/ifvms.js/src/zvm/quetzal.js',
