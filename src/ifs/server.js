@@ -122,6 +122,10 @@ var ChatRoom = (function() {
 		restoreGame: function(){
 			this.send("RESTORE", this.save);
 			this.history = [];
+			this.seed = Math.random() * 9999 + 1;
+			this.send("SEED", {
+				seed: this.seed
+			});
 		}
 	};
 	return ChatRoom;

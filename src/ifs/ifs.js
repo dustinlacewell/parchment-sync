@@ -111,6 +111,9 @@ window.IFS = Object.subClass({
 					data: file.base64_decode(json.data)
 				});
 				break;
+			case "SEED":
+				Math.random_seeded = Math.seed(json.data.seed);
+				break;
 			default:
 				console.log('Hmm..., I\'ve never seen JSON like this: ', json);
 		}
