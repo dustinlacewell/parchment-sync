@@ -19,7 +19,7 @@ process.title = 'parchment-ifs';
 */
  
 var webSocketServer = require('websocket').server,
-	sanitize = require('validator').sanitize,
+	escape = require('validator').escape,
 	http = require('http'),
 	fs = require('fs'),
 	port = 1337,
@@ -47,7 +47,7 @@ var Client = (function() {
 			}
 			this.send("LIST", list);
 		}
-	}
+	};
 	return Client;
 })();
 
@@ -58,6 +58,7 @@ var ChatRoom = (function() {
 		this.url = gameurl;
 		this.history = [];
 		this.clients = {};
+		this.seed = Math.random() * 9999 + 1;
 	}
 	ChatRoom.prototype = {
 		send: function(type, data){
@@ -86,6 +87,7 @@ var ChatRoom = (function() {
 		sendHistory: function(client){
 			client.send("HISTORY", {
 				save: this.save,
+				seed: this.seed,
 				commands: this.history,
 				chat: []
 			});
@@ -100,7 +102,7 @@ var ChatRoom = (function() {
 			client.name = name;
 			client.room = this.title;
 			// this.send("JOIN", client.name);
-			this.sendHTML("<b>"+sanitize(client.name).entityEncode()+"</b> joined!");
+			this.sendHTML("<b>"+escape(client.name)+"</b> joined!");
 			this.sendHistory(client);
 			this.clients[client.name] = client;
 			this.sendNames();
@@ -110,7 +112,7 @@ var ChatRoom = (function() {
 			client.room = null;
 			delete this.clients[client.name];
 			// this.send("PART", client.name);
-			this.sendHTML("<b>"+sanitize(client.name).entityEncode()+"</b> left!");
+			this.sendHTML("<b>"+escape(client.name)+"</b> left!");
 			this.sendNames();
 		},
 		saveGame: function(data){
@@ -121,7 +123,7 @@ var ChatRoom = (function() {
 			this.send("RESTORE", this.save);
 			this.history = [];
 		}
-	}
+	};
 	return ChatRoom;
 })();
 

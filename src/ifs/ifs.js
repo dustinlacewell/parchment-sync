@@ -2,6 +2,14 @@ $(function(){
 
 jQuery.fn.reverse = [].reverse;
 
+// Global function for random seed synchronization
+// Change Math.random => Math.random_seeded in all IF libs
+Math.seed = function(s) {
+    return function() {
+        s = Math.sin(s) * 10000; return s - Math.floor(s);
+    };
+};
+
 var rooms;
 
 window.WebSocket = window.WebSocket || window.MozWebSocket;
@@ -73,6 +81,7 @@ window.IFS = Object.subClass({
 				// Load up the game and push history through engine
 				urloptions.story = rooms[urloptions.room];
 				urloptions.save = json.data.save;
+				Math.random_seeded = Math.seed(json.data.seed);
 				loadParchmentIFS();
 				// TODO: what if MSG is recieved while loading game/history?
 

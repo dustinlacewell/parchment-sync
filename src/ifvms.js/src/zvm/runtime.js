@@ -412,7 +412,7 @@ window.ZVM = Object.subClass( {
 		// Pure randomness
 		if ( this.random_state == 0 )
 		{
-			return parseInt( Math.random() * range ) + 1;
+			return parseInt( Math.random_seeded() * range ) + 1;
 		}
 		// How can we best seed the RNG?
 		

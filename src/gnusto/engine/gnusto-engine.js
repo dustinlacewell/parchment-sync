@@ -2869,7 +2869,7 @@ GnustoEngine.prototype = {
 					} else {
 							// No. Use JS's random numbers.
 							// (Hope these are generally good enough.)
-							return 1 + Math.round((arg -1) * Math.random());
+							return 1 + Math.round((arg -1) * Math.random_seeded());
 					}
 			}
 

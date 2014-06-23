@@ -3641,7 +3641,7 @@ function store_operand_by_funcop(funcop, val) {
 */
 function set_random(val) {
     if (val == 0) {
-        random_func = Math.random;
+        random_func = Math.random_seeded;
     }
     else {
         srand_set_seed(val);
