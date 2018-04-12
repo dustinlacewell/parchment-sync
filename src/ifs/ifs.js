@@ -18,7 +18,7 @@ window.IFS = Object.subClass({
 	init: function(gamefile, ip, port){
 		if (!window.WebSocket)
 			return false;
-		var conn = new window.WebSocket('ws://'+ip+':'+port);
+		var conn = new window.WebSocket('wss://'+ip+':'+port);
 		conn.onopen = this.onopen;
 		conn.onclose = this.onclose;
 		conn.onerror = this.onerror;
