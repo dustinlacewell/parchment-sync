@@ -33,7 +33,7 @@ $(function()
 	parchment.options.debug = urloptions.debug;
 	/* ENDDEBUG */
 
-	window.server = new IFS('', 'cruels.net', 1337);
+	window.server = new IFS('', 'if.cruels.net', 1337);
 	if (!server.connection)
 		console.log('No websocket, son');
 	
