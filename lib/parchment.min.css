@@ -1,0 +1,227 @@
+/*
+
+Parchment
+=========
+
+Built: 2018-04-12
+
+Copyright (c) 2008-2012 The Parchment Contributors
+BSD licenced
+http://code.google.com/p/parchment
+
+*/
+/* 
+
+General Parchment styles
+========================
+
+Copyright (c) 2008-2011 The Parchment Contributors
+BSD licenced
+http://code.google.com/p/parchment
+
+*/
+
+html
+{
+	overflow-y: scroll;
+	-webkit-text-size-adjust: none;
+}
+
+body
+{
+	background: #FFF;
+	color: #000;
+	font-family: Georgia, Palatino, serif;
+	font-size: 16px;
+	margin: 0 0 8px;
+	text-align: center;
+}
+
+#parchment
+{
+	margin: 0 auto;
+	text-align: left;
+}
+
+#gameport
+{
+	line-height: 1.4;
+	margin: 0 auto;
+	text-align: left;
+	width: 80%;
+}
+
+/* General dialogs */
+.dialog
+{
+	background: #fff;
+	border: 3px solid #ddd;
+	border-radius: 10px;
+	-webkit-box-shadow: 5px 5px 10px #777;
+	box-shadow: 5px 5px 10px #777;
+	left: 30%;
+	padding: 0px 20px;
+	position: fixed;
+	top: 20%;
+	width: 40%;
+}
+
+/* Load indicator */
+.load
+{
+	text-align: left;
+}
+
+/* Front page panels */
+
+/* Load any web story file */
+.panel input
+{
+	display: block;
+	margin: 0 auto;
+	width: 50%;
+}
+
+.error {
+    background: red;
+    color: white;
+    padding: 10px;
+    margin: 10px;
+}/* 
+
+StructIO styles
+===============
+
+Copyright (c) 2008-2012 The Parchment Contributors
+BSD licenced
+http://code.google.com/p/parchment
+
+*/
+
+#parchment
+{
+	white-space: pre-wrap;
+}
+
+/* Line input */
+.TextInput
+{
+	background: none;
+	border: 0;
+	color: inherit;
+	display: inline;
+	font: inherit;
+	outline: 0;
+	padding: 0;
+}
+
+/* Character input (to be added to the above) */
+.CharInput
+{
+	left: -999em;
+	position: absolute;
+}
+
+/* Text grid window */
+.TextGrid
+{
+	position: fixed;
+	z-index: 2;
+}
+
+/* Floating boxes */
+.box
+{
+	position: absolute;
+	z-index: 1;
+}
+
+/* Main window */
+.main, .TextGrid
+{
+	/* Extra padding in case some serifs stick outside the status window */
+	padding: 0 1px;
+}
+
+/* Monospace text */
+tt
+{
+	font-family: monospace;
+	line-height: 1;
+}ul { list-style-type: none; }
+
+#about {display:none;}
+
+#ifs {
+	display: none;
+	position: absolute;
+	white-space: normal;
+	text-align: center;
+	left: 50%;
+	top: 40%;
+	/*height:50px;*/
+	width:230px;
+	margin:-25px 0 0 -115px;
+	background:#eee;
+	border-radius:4px;
+	box-shadow: 5px 5px 5px #888;
+}
+
+.author {
+	position: absolute;
+	width: 110px;
+	overflow: hidden;
+	margin-left: -135px;
+	margin-top: -1px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-align: right;
+	text-shadow: 1px 1px 1px #000;
+}
+
+#setuperror {
+	display: none;
+	padding-top: 8px;
+	color: #C00;
+}
+#nick {
+	display: none;
+	padding: 25px 0 25px 0;
+}
+	#nick input {
+		width: 100px;
+	}
+
+#names {
+	position: fixed;
+	right: 0;
+}
+
+#rooms {
+	display: none;
+	padding: 10px 0 10px 0;
+}
+	#rooms ul{
+		padding: 8px;
+	}
+	#rooms li{
+		cursor: pointer;
+	}
+	#rooms li:hover{
+		background: #ccc;
+	}
+
+#games {
+	display: none;
+	padding: 10px 0 10px 0;
+}
+	#games ul{
+		padding: 8px;
+	}
+	#games li{
+		cursor: pointer;
+		margin-bottom: 20px;
+	}
+	#games li:hover{
+		background: #ccc;
+	}
